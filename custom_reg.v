@@ -5,30 +5,44 @@ input CLOCK_50,
 output reg sw_event,
 output reg [2:0] event_sync_reg,
 output reg [9:0] custom_register,
-output wire is_even,
+output reg is_even,
 output reg [7:0] counter,
 output reg [9:0] LEDR,
 output reg [6:0] HEX0,
-output reg [6:0] HEX1
+output reg [6:0] HEX1,
+output reg [6:0] HEX2,
+output reg [6:0] HEX3,
+output reg flag,
+output reg [7:0] LEDG
 );
 
 initial event_sync_reg = 3'b0;
 initial custom_register = 10'b0;
 initial LEDR = 10'b0;
+initial HEX2 = 7'b1111111;
+initial HEX3 = 7'b1111111;
 initial counter = 8'b0;
-assign is_even = ~^custom_register;
+initial is_even = ~^custom_register[9:0];
+
+assign INV_KEY_1 = ~KEY[1];
+assign INV_KEY_0 = ~KEY[0];
 
 
-always @(posedge CLOCK_50 or posedge KEY[1]) begin
-	if (KEY[1]) begin
+always @(posedge INV_KEY_0 or posedge INV_KEY_1) begin
+	if (INV_KEY_1) begin
 		custom_register = 10'b0;
 		counter <= 8'b0;
 	end else begin
-		if (KEY[0]) begin
+		if (INV_KEY_0) begin
 			custom_register ={custom_register[8:0], SW[0]};
-			if (~is_even) begin
+			is_even = ~^custom_register[9:0];
+			flag = 0;
+			LEDR = custom_register;
+			if (is_even) begin
+				HEX3 = 7'b0000000;
 				counter <= counter + 1;
-			end
+			end		
+			else begin HEX3 = 7'b1111111; end
 			LEDR = custom_register;
 		end
 	end
@@ -57,5 +71,6 @@ case (counter[3:0])
 	8:	HEX0 = 7'b0000000;
 	9:	HEX0 = 7'b0010000;
 endcase
+LEDG[7:0] = counter;
 end
 endmodule
